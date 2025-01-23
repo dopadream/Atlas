@@ -14,6 +14,8 @@ The Amethyst skybox also has special fog that applies to interiors. (configurabl
 <img title="Canyon" alt="A showcase of the Amethyst skybox." src="https://github.com/dopadream/Atlas/blob/main/screenshots/Amethyst.png?raw=true">
 </details>
 
+# Credits
 
-
+[Poly Haven](https://polyhaven.com/hdris) - HDRI sources \
+[IAmBatby](https://thunderstore.io/c/lethal-company/p/IAmBatby/) - LethalLevelLoader's cool tag system
 
