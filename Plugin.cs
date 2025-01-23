@@ -83,11 +83,11 @@ namespace TemplatePluginName
                     // Amethyst is here twice to account for LLL currently having a typo
                     VolumeProfile profile = tagName switch
                     {
-                        "CanyonContentTag" => LoadProfile(ref canyonProfile, "CanyonSky"),
-                        "ValleyContentTag" => LoadProfile(ref valleyProfile, "ValleySky"),
-                        "TundraContentTag" => LoadProfile(ref tundraProfile, "TundraSky"),
-                        "AmethystContentTag" => LoadProfile(ref amethystProfile, "AmethystSky"),
-                        "AmythestContentTag" => LoadProfile(ref amethystProfile, "AmethystSky"),
+                        "CanyonContentTag" => ModConfig.configCanyonSky.Value ? LoadProfile(ref canyonProfile, "CanyonSky") : null,
+                        "ValleyContentTag" => ModConfig.configValleySky.Value ? LoadProfile(ref valleyProfile, "ValleySky") : null,
+                        "TundraContentTag" => ModConfig.configTundraSky.Value ? LoadProfile(ref tundraProfile, "TundraSky") : null,
+                        "AmethystContentTag" => ModConfig.configAmethystSky.Value ? LoadProfile(ref amethystProfile, "AmethystSky") : null,
+                        "AmythestContentTag" => ModConfig.configAmethystSky.Value ? LoadProfile(ref amethystProfile, "AmethystSky") : null,
                         _ => null
                     };
 
