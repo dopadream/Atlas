@@ -9,6 +9,7 @@ using System.IO;
 using System.Reflection;
 using Atlas;
 using System;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace TemplatePluginName
 {
@@ -130,6 +131,15 @@ namespace TemplatePluginName
             {
                 Plugin.Logger.LogDebug($"Profile '{assetName}' already loaded.");
             }
+
+            if (profile.name.StartsWith("Amethyst") && !ModConfig.configAmethystFog.Value)
+            {
+                if (profile.TryGet(out Fog fog))
+                {
+                    fog.active = false;
+                }
+            }
+
             return profile;
         }
 

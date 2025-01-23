@@ -5,7 +5,7 @@ namespace Atlas
     public class ModConfig
     {
 
-        internal static ConfigEntry<bool> configCanyonSky, configValleySky, configTundraSky, configAmethystSky;
+        internal static ConfigEntry<bool> configCanyonSky, configValleySky, configTundraSky, configAmethystSky, configAmethystFog;
 
         internal static ConfigEntry<string> configMoonBlacklist;
 
@@ -22,6 +22,9 @@ namespace Atlas
 
             configAmethystSky = cfg.Bind("General", "Amethyst Skies", true,
                 new ConfigDescription("Adds a new HDRI volume to moons tagged with \"Amethyst\""));
+
+            configAmethystFog = cfg.Bind("General", "Amethyst Fog", true,
+                new ConfigDescription("Adds extra fog to the new Amethyst sky, applies to both interior and exterior."));
 
             configMoonBlacklist = cfg.Bind("Blacklist", "Moon Blacklist", "Experimentation, Artifice",
                 new ConfigDescription("Planet names in this list will not have their skies overwritten. Must be separated by comma."));
