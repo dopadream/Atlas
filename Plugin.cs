@@ -80,12 +80,14 @@ namespace TemplatePluginName
                     }
 
                     // Map content tags to asset names and load profiles if not already loaded
+                    // Amethyst is here twice to account for LLL currently having a typo
                     VolumeProfile profile = tagName switch
                     {
                         "CanyonContentTag" => LoadProfile(ref canyonProfile, "CanyonSky"),
                         "ValleyContentTag" => LoadProfile(ref valleyProfile, "ValleySky"),
                         "TundraContentTag" => LoadProfile(ref tundraProfile, "TundraSky"),
                         "AmethystContentTag" => LoadProfile(ref amethystProfile, "AmethystSky"),
+                        "AmythestContentTag" => LoadProfile(ref amethystProfile, "AmethystSky"),
                         _ => null
                     };
 
