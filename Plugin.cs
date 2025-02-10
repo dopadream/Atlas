@@ -84,7 +84,7 @@ namespace TemplatePluginName
                     {
                         if (sky.hdriSky.value.name != "cedar_bridge_4k")
                         {
-                            Logger.LogDebug("Skipping volume because it already has a custom skybox.");
+                            Logger.LogDebug("Skipping volume because it does not match the vanilla skybox.");
                             continue;
                         }
                     }
@@ -159,6 +159,16 @@ namespace TemplatePluginName
                     continue;
                 }
 
+
+                if (volume.sharedProfile.TryGet(out HDRISky sky))
+                {
+                    if (sky.hdriSky.value.name != "cedar_bridge_4k")
+                    {
+                        Logger.LogDebug("Skipping volume because it does not match the vanilla skybox.");
+                        continue;
+                    }
+                }
+
                 // Load the asset bundle once
                 if (hdriSkies == null)
                 {
@@ -227,10 +237,10 @@ namespace TemplatePluginName
                     Plugin.Logger.LogError($"Failed to load asset '{assetName}' from bundle 'hdri_skies': {ex.Message}");
                 }
             }
-            else
+            /*else
             {
                 Plugin.Logger.LogDebug($"Profile '{assetName}' already loaded.");
-            }
+            }*/
 
             if (profile.name.StartsWith("Amethyst") && !ModConfig.configAmethystFog.Value)
             {
