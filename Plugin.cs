@@ -10,8 +10,6 @@ using System.Reflection;
 using Atlas;
 using System;
 using UnityEngine.Rendering.HighDefinition;
-using UnityEngine.Assertions.Must;
-using static UnityEngine.Rendering.HighDefinition.CameraSettings;
 using BepInEx.Bootstrap;
 
 namespace TemplatePluginName
@@ -20,7 +18,7 @@ namespace TemplatePluginName
     [BepInDependency("imabatby.lethallevelloader", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
-        const string PLUGIN_GUID = "dopadream.lethalcompany.atlas", PLUGIN_NAME = "Atlas", PLUGIN_VERSION = "1.0.1";
+        const string PLUGIN_GUID = "dopadream.lethalcompany.atlas", PLUGIN_NAME = "Atlas", PLUGIN_VERSION = "1.0.4";
         internal static new ManualLogSource Logger;
         internal static VolumeProfile canyonProfile, valleyProfile, tundraProfile, amethystProfile;
         internal static AssetBundle hdriSkies;
@@ -40,6 +38,12 @@ namespace TemplatePluginName
 
             // Parse the blacklist only once
             string[] blackList = ModConfig.configMoonBlacklist.Value.Split(',');
+
+            for (int i = 0; i < blackList.Length; i++)
+            {
+                blackList[i] = blackList[i].Trim();
+            }
+
             Plugin.Logger.LogDebug($"Blacklist contains: {string.Join(", ", blackList)}");
 
             // Find all volumes
@@ -63,11 +67,17 @@ namespace TemplatePluginName
             // Skip tags in the blacklist
             if (blackList.Contains(LevelManager.CurrentExtendedLevel.NumberlessPlanetName))
             {
-                Plugin.Logger.LogDebug($"Skipping volume change because current planet is in blacklist");
+                Plugin.Logger.LogDebug("Skipping volume change because current planet is in blacklist");
                 return;
             }
 
-            foreach (var volume in volumes)
+            if (LevelManager.CurrentExtendedLevel.NumberlessPlanetName == "Galetry")
+            {
+                Plugin.Logger.LogDebug("Skipping volume change because Galetry was detected");
+                return;
+            }
+
+                foreach (var volume in volumes)
             {
                 if (volume?.sharedProfile == null)
                 {
@@ -132,10 +142,21 @@ namespace TemplatePluginName
                                 }
                             }
                         }
-                        if ((LevelManager.CurrentExtendedLevel.NumberlessPlanetName == "Embrion" || tagName == "AmethystContentTag" || tagName == "AmythestContentTag") && volume.name.Equals("Sky and Fog Global Volume"))
+                        if ((LevelManager.CurrentExtendedLevel.NumberlessPlanetName == "Embrion" || tagName == "AmethystContentTag" || tagName == "AmythestContentTag"))
                         {
-                            Plugin.Logger.LogDebug($"Applying profile to volume: {volume.name}");
-                            volume.sharedProfile = LoadProfile(ref amethystProfile, "AmethystSky");
+                            if (volume.name.Equals("Sky and Fog Global Volume"))
+                            {
+                                Plugin.Logger.LogDebug($"Applying profile to volume: {volume.name}");
+                                volume.sharedProfile = LoadProfile(ref amethystProfile, "AmethystSky");
+                            }
+                            else if (volume.name.Equals("Sky and Fog Global Volume (1)"))
+                            {
+                                if (volume.sharedProfile.TryGet(out HDRISky vanillaSky) && LoadProfile(ref amethystProfile, "AmethystSky").TryGet(out HDRISky newSky))
+                                {
+                                    vanillaSky.hdriSky.value = newSky.hdriSky.value;
+                                    vanillaSky.distortionMode.value = newSky.distortionMode.value;
+                                }
+                            }
                         }
                     }
                 }
@@ -218,10 +239,21 @@ namespace TemplatePluginName
                             }
                         }
                     }
-                    if (GetNumberlessPlanetName(StartOfRound.Instance.currentLevel) == "Embrion" && volume.name.Equals("Sky and Fog Global Volume"))
+                    if (GetNumberlessPlanetName(StartOfRound.Instance.currentLevel) == "Embrion")
                     {
-                        Plugin.Logger.LogDebug($"Applying profile to volume: {volume.name}");
-                        volume.sharedProfile = LoadProfile(ref amethystProfile, "AmethystSky");
+                        if (volume.name.Equals("Sky and Fog Global Volume"))
+                        {
+                            Plugin.Logger.LogDebug($"Applying profile to volume: {volume.name}");
+                            volume.sharedProfile = LoadProfile(ref amethystProfile, "AmethystSky");
+                        }
+                        else if (volume.name.Equals("Sky and Fog Global Volume (1)"))
+                        {
+                            if (volume.sharedProfile.TryGet(out HDRISky vanillaSky) && LoadProfile(ref amethystProfile, "AmethystSky").TryGet(out HDRISky newSky))
+                            {
+                                vanillaSky.hdriSky.value = newSky.hdriSky.value;
+                                vanillaSky.distortionMode.value = newSky.distortionMode.value;
+                            }
+                        }
                     }
                 }
             }
