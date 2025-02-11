@@ -1,6 +1,7 @@
 # Atlas
 
-This plugin utilizes LethalLevelLoader to add unique skyboxes to moons based on their theme (content tags). It is configurable and has a user blacklist for individual moons.
+This plugin utilizes LethalLevelLoader to add unique skyboxes to moons based on their theme (content tags). It is configurable and has a user blacklist for individual moons. 
+There is fallback support for vanilla if LethalLevelLoader is not installed.
 
 This mod is fully client-sided.
 
