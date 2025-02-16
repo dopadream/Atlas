@@ -11,6 +11,8 @@ using Atlas;
 using System;
 using UnityEngine.Rendering.HighDefinition;
 using BepInEx.Bootstrap;
+using BepInEx.Configuration;
+using UnityEngine.Profiling;
 
 namespace TemplatePluginName
 {
@@ -18,9 +20,9 @@ namespace TemplatePluginName
     [BepInDependency("imabatby.lethallevelloader", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
-        const string PLUGIN_GUID = "dopadream.lethalcompany.atlas", PLUGIN_NAME = "Atlas", PLUGIN_VERSION = "1.0.4";
+        const string PLUGIN_GUID = "dopadream.lethalcompany.atlas", PLUGIN_NAME = "Atlas", PLUGIN_VERSION = "1.0.5";
         internal static new ManualLogSource Logger;
-        internal static VolumeProfile canyonProfile, valleyProfile, tundraProfile, amethystProfile;
+        internal static VolumeProfile canyonProfile, valleyProfile, tundraProfile, amethystProfile, companyProfile;
         internal static AssetBundle hdriSkies;
 
         void Awake()
@@ -64,45 +66,65 @@ namespace TemplatePluginName
 
         private static void initLLL(string[] blackList, Volume[] volumes)
         {
-            // Skip tags in the blacklist
+            if (blackList == null || volumes == null)
+            {
+                Plugin.Logger.LogError("Blacklist or volumes array is null.");
+                return;
+            }
+
             if (blackList.Contains(LevelManager.CurrentExtendedLevel.NumberlessPlanetName))
             {
                 Plugin.Logger.LogDebug("Skipping volume change because current planet is in blacklist");
                 return;
             }
 
-            if (LevelManager.CurrentExtendedLevel.NumberlessPlanetName == "Galetry")
+            if (volumes.Length == 0)
             {
-                Plugin.Logger.LogDebug("Skipping volume change because Galetry was detected");
+                Plugin.Logger.LogDebug("Skipping volume change because no volumes could be found");
                 return;
             }
 
-                foreach (var volume in volumes)
+            foreach (var volume in volumes)
             {
-                if (volume?.sharedProfile == null)
+                if (volume == null)
                 {
-                    Plugin.Logger.LogDebug("Skipping volume because it's null or sharedProfile is null.");
+                    Plugin.Logger.LogDebug("Skipping volume because it's null.");
                     continue;
                 }
 
-                if (volume.sharedProfile.TryGet(out HDRISky sky))
+                if (volume.sharedProfile == null)
                 {
-                    if (sky.hdriSky.value.name != "cedar_bridge_4k")
-                    {
-                        //Logger.LogDebug("Skipping volume because it does not match the vanilla skybox.");
-                        continue;
-                    }
+                    Plugin.Logger.LogDebug("Skipping volume because sharedProfile is null.");
+                    continue;
+                }
+
+                if (!volume.sharedProfile.TryGet(out HDRISky sky))
+                {
+                    Plugin.Logger.LogDebug("Skipping volume change because no HDRISky component could be found");
+                    continue;
                 }
 
 
-                // Load the asset bundle once
+
                 if (hdriSkies == null)
                 {
                     try
                     {
                         Plugin.Logger.LogDebug("Loading asset bundle 'hdri_skies'...");
-                        var assetPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "hdri_skies");
+                        var assemblyLocation = Assembly.GetExecutingAssembly()?.Location;
+                        if (assemblyLocation == null)
+                        {
+                            Plugin.Logger.LogError("Failed to get assembly location.");
+                            return;
+                        }
+
+                        var assetPath = Path.Combine(Path.GetDirectoryName(assemblyLocation), "hdri_skies");
                         hdriSkies = AssetBundle.LoadFromFile(assetPath);
+                        if (hdriSkies == null)
+                        {
+                            Plugin.Logger.LogError("Failed to load asset bundle: AssetBundle is null.");
+                            return;
+                        }
                         Plugin.Logger.LogDebug("Successfully loaded asset bundle.");
                     }
                     catch (Exception ex)
@@ -112,56 +134,123 @@ namespace TemplatePluginName
                     }
                 }
 
-                foreach (var tag in LevelManager.CurrentExtendedLevel.ContentTags)
+                // probably do override stuff here then return
+
+                ConfigEntry<string>[] overridesList = {
+                    ModConfig.configCanyonOverrides,
+                    ModConfig.configValleyOverrides,
+                    ModConfig.configTundraOverrides,
+                    ModConfig.configCompanyOverrides,
+                    ModConfig.configAmethystOverrides
+                };
+
+                foreach (ConfigEntry<string> entry in overridesList)
                 {
-                    string tagName = tag.name;
-                    Plugin.Logger.LogDebug($"Processing tag: {tagName}");
-
-                    // Map content tags to asset names and load profiles if not already loaded
-                    // Amethyst is here twice to account for LLL currently having a typo
-                    VolumeProfile profile = tagName switch
+                    if (entry.Value == "")
                     {
-                        "CanyonContentTag" => ModConfig.configCanyonSky.Value ? LoadProfile(ref canyonProfile, "CanyonSky") : null,
-                        "ValleyContentTag" => ModConfig.configValleySky.Value ? LoadProfile(ref valleyProfile, "ValleySky") : null,
-                        "TundraContentTag" => ModConfig.configTundraSky.Value ? LoadProfile(ref tundraProfile, "TundraSky") : null,
-                        "AmethystContentTag" => ModConfig.configAmethystSky.Value ? LoadProfile(ref amethystProfile, "AmethystSky") : null,
-                        "AmythestContentTag" => ModConfig.configAmethystSky.Value ? LoadProfile(ref amethystProfile, "AmethystSky") : null,
-                        _ => null
-                    };
+                        continue;
+                    }
 
-                    if (volume.name.StartsWith("Sky and Fog"))
+                    string[] list = entry.Value.Split(',');
+
+                    for (int i = 0; i < list.Length; i++)
                     {
-                        if (profile != null)
+                        list[i] = list[i].Trim();
+                    }
+
+                    if (list.Contains(LevelManager.CurrentExtendedLevel.NumberlessPlanetName))
+                    {
+                        switch (entry.Definition.Key)
                         {
-                            if (volume.sharedProfile.TryGet<HDRISky>(out HDRISky vanillaSky))
-                            {
-                                if (profile.TryGet<HDRISky>(out HDRISky newSky))
-                                {
-                                    Plugin.Logger.LogDebug($"Applying {newSky.hdriSky.value.name} to sky: {vanillaSky.name}");
-                                    vanillaSky.hdriSky.value = newSky.hdriSky.value;
-                                }
-                            }
-                        }
-                        if ((LevelManager.CurrentExtendedLevel.NumberlessPlanetName == "Embrion" || tagName == "AmethystContentTag" || tagName == "AmythestContentTag"))
-                        {
-                            if (volume.name.Equals("Sky and Fog Global Volume"))
-                            {
-                                Plugin.Logger.LogDebug($"Applying profile to volume: {volume.name}");
-                                volume.sharedProfile = LoadProfile(ref amethystProfile, "AmethystSky");
-                            }
-                            else if (volume.name.Equals("Sky and Fog Global Volume (1)"))
-                            {
-                                if (volume.sharedProfile.TryGet(out HDRISky vanillaSky) && LoadProfile(ref amethystProfile, "AmethystSky").TryGet(out HDRISky newSky))
-                                {
-                                    vanillaSky.hdriSky.value = newSky.hdriSky.value;
-                                    vanillaSky.distortionMode.value = newSky.distortionMode.value;
-                                }
-                            }
+                            case ("Canyon"):
+                                ChangeProfileIfAvailable("Canyon", volume);
+                                goto IterateLoop;
+                            case ("Valley"):
+                                ChangeProfileIfAvailable("Valley", volume);
+                                goto IterateLoop;
+                            case ("Tundra"):
+                                ChangeProfileIfAvailable("Tundra", volume);
+                                goto IterateLoop;
+                            case ("Company"):
+                                ChangeProfileIfAvailable("Company", volume);
+                                goto IterateLoop;
+                            case ("Amethyst"):
+                                ChangeProfileIfAvailable("Amethyst", volume);
+                                goto IterateLoop;
                         }
                     }
                 }
+
+                if (sky?.hdriSky?.value?.name != "cedar_bridge_4k")
+                {
+                    continue;
+                }
+
+                if (LevelManager.CurrentExtendedLevel?.ContentTags == null)
+                {
+                    Plugin.Logger.LogError("ContentTags is null.");
+                    return;
+                }
+
+                foreach (var tag in LevelManager.CurrentExtendedLevel.ContentTags)
+                {
+                    if (tag?.name == null)
+                    {
+                        Plugin.Logger.LogDebug("Skipping tag because it's null.");
+                        continue;
+                    }
+
+                    string tagName = tag.name;
+                    Plugin.Logger.LogDebug($"Processing tag: {tagName}");
+
+
+                    // -- automatic tag mapping -- 
+
+                    switch (tagName)
+                    {
+                        case ("CanyonContentTag"):
+                            if (ModConfig.configCanyonSky?.Value == true)
+                                ChangeProfileIfAvailable("Canyon", volume);
+                            return;
+                        case ("ValleyContentTag"):
+                            if (ModConfig.configValleySky?.Value == true)
+                                ChangeProfileIfAvailable("Valley", volume);
+                            return;
+                        case ("TundraContentTag"):
+                            if (ModConfig.configTundraSky?.Value == true)
+                                ChangeProfileIfAvailable("Tundra", volume);
+                            return;
+                    }
+
+                    // -- embrion mapping --
+
+                    if (LevelManager.CurrentExtendedLevel.NumberlessPlanetName == "Embrion" || tagName == "AmethystContentTag" || tagName == "AmythestContentTag")
+                    {
+                        if (ModConfig.configAmethystSky?.Value == false)
+                        {
+                            return;
+                        }
+
+                        ChangeProfileIfAvailable("Amethyst", volume);
+                    }
+
+                    // -- company mapping -- 
+
+                    if (LevelManager.CurrentExtendedLevel.NumberlessPlanetName == "Gordion" || tagName == "CompanyContentTag")
+                    {
+                        if (ModConfig.configCompanySky?.Value == false)
+                        {
+                            return;
+                        }
+
+                        ChangeProfileIfAvailable("Company", volume);
+                    }
+                }
+            IterateLoop:
+                continue;
             }
         }
+
 
         private static void initVanilla(string[] blackList, Volume[] volumes)
         {
@@ -173,6 +262,12 @@ namespace TemplatePluginName
             if (blackList.Contains(GetNumberlessPlanetName(StartOfRound.Instance.currentLevel)))
             {
                 Plugin.Logger.LogDebug($"Skipping volume change because current planet is in blacklist");
+                return;
+            }
+
+            if (volumes == null || volumes.Length == 0)
+            {
+                Plugin.Logger.LogDebug("Skipping volume change because no volumes could be found");
                 return;
             }
 
@@ -192,6 +287,11 @@ namespace TemplatePluginName
                         //Logger.LogDebug("Skipping volume because it does not match the vanilla skybox.");
                         continue;
                     }
+                }
+                else
+                {
+                    Logger.LogDebug("Skipping volume change because no HDRISky component could be found");
+                    continue;
                 }
 
                 // Load the asset bundle once
@@ -222,6 +322,7 @@ namespace TemplatePluginName
                     "Level5Rend" => ModConfig.configTundraSky.Value ? LoadProfile(ref tundraProfile, "TundraSky") : null,
                     "Level6Dine" => ModConfig.configTundraSky.Value ? LoadProfile(ref tundraProfile, "TundraSky") : null,
                     "Level8Titan" => ModConfig.configTundraSky.Value ? LoadProfile(ref tundraProfile, "TundraSky") : null,
+                    "CompanyBuilding" => ModConfig.configCompanySky.Value ? LoadProfile(ref companyProfile, "CompanySky") : null,
                     "Level11Embrion" => ModConfig.configAmethystSky.Value ? LoadProfile(ref amethystProfile, "AmethystSky") : null,
                     _ => null
                 };
@@ -241,23 +342,97 @@ namespace TemplatePluginName
                     }
                     if (GetNumberlessPlanetName(StartOfRound.Instance.currentLevel) == "Embrion")
                     {
+                        if (profile != null)
+                        {
+
+                            if (ModConfig.configAmethystSky?.Value == false)
+                            {
+                                return;
+                            }
+
+                            if (volume.name.Equals("Sky and Fog Global Volume"))
+                            {
+                                Plugin.Logger.LogDebug($"Applying profile to volume: {volume.name}");
+                                volume.sharedProfile = LoadProfile(ref amethystProfile, "AmethystSky");
+                            }
+                            else if (volume.name.Equals("Sky and Fog Global Volume (1)"))
+                            {
+                                if (volume.sharedProfile.TryGet(out HDRISky vanillaSky) && LoadProfile(ref amethystProfile, "AmethystSky").TryGet(out HDRISky newSky))
+                                {
+                                    vanillaSky.hdriSky.value = newSky.hdriSky.value;
+                                    vanillaSky.distortionMode.value = newSky.distortionMode.value;
+                                }
+                            }
+                        }
+                    }
+
+                    if (GetNumberlessPlanetName(StartOfRound.Instance.currentLevel) == "Gordion")
+                    {
+                        if (ModConfig.configCompanySky?.Value == false)
+                        {
+                            return;
+                        }
+
                         if (volume.name.Equals("Sky and Fog Global Volume"))
                         {
                             Plugin.Logger.LogDebug($"Applying profile to volume: {volume.name}");
-                            volume.sharedProfile = LoadProfile(ref amethystProfile, "AmethystSky");
-                        }
-                        else if (volume.name.Equals("Sky and Fog Global Volume (1)"))
-                        {
-                            if (volume.sharedProfile.TryGet(out HDRISky vanillaSky) && LoadProfile(ref amethystProfile, "AmethystSky").TryGet(out HDRISky newSky))
-                            {
-                                vanillaSky.hdriSky.value = newSky.hdriSky.value;
-                                vanillaSky.distortionMode.value = newSky.distortionMode.value;
-                            }
+                            volume.sharedProfile = LoadProfile(ref companyProfile, "CompanySky");
                         }
                     }
                 }
             }
         }
+
+        internal static void ChangeProfileIfAvailable(string TagName, Volume volume)
+        {
+            if (volume?.sharedProfile == null || !volume.sharedProfile.TryGet<HDRISky>(out HDRISky vanillaSky))
+            {
+                return;
+            }
+
+            Plugin.Logger.LogDebug($"Applying profile to volume: {volume.name}");
+
+            VolumeProfile profile = TagName switch
+            {
+                "Canyon" => LoadProfile(ref canyonProfile, "CanyonSky"),
+                "Valley" => LoadProfile(ref valleyProfile, "ValleySky"),
+                "Tundra" => LoadProfile(ref tundraProfile, "TundraSky"),
+                "Amethyst" => LoadProfile(ref amethystProfile, "AmethystSky"),
+                "Company" => LoadProfile(ref companyProfile, "CompanySky"),
+                _ => null
+            };
+
+            if (profile == null)
+            {
+                Plugin.Logger.LogDebug($"No profile found for tag: {TagName}");
+                return;
+            }
+
+            // Handle special cases where the entire shared profile needs replacement
+            if (TagName == "Amethyst" || TagName == "Company")
+            {
+                if (volume.name == "Sky and Fog Global Volume")
+                {
+                    volume.sharedProfile = profile;
+                    return;
+                }
+            }
+
+            if (!profile.TryGet<HDRISky>(out HDRISky newSky) || newSky?.hdriSky?.value == null)
+            {
+                Plugin.Logger.LogDebug($"Skipping profile application for tag: {TagName} due to missing HDRISky.");
+                return;
+            }
+
+            if (volume.name == "Sky and Fog Global Volume" || volume.name == "Sky and Fog Global Volume (1)")
+            {
+                Plugin.Logger.LogDebug($"{vanillaSky.hdriSky.value.name} replaced with {newSky.hdriSky.value.name}");
+                vanillaSky.hdriSky.value = newSky.hdriSky.value;
+                vanillaSky.distortionMode.value = newSky.distortionMode.value;
+                vanillaSky.rotation.value = newSky.rotation.value;
+            }
+        }
+
 
         internal static string GetNumberlessPlanetName(SelectableLevel selectableLevel)
         {
@@ -301,14 +476,14 @@ namespace TemplatePluginName
         }
 
         [HarmonyPatch]
-        internal class AtlasPatches
+    internal class AtlasPatches
+    {
+        [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.FinishGeneratingNewLevelClientRpc))]
+        [HarmonyPostfix]
+        static void PostFinishGeneratingNewLevelClientRpc(RoundManager __instance)
         {
-            [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.FinishGeneratingNewLevelClientRpc))]
-            [HarmonyPostfix]
-            static void PostFinishGeneratingNewLevelClientRpc(RoundManager __instance)
-            {
-                ApplySky();
-            }
+            ApplySky();
         }
     }
+}
 }
