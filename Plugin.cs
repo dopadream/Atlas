@@ -12,7 +12,6 @@ using System;
 using UnityEngine.Rendering.HighDefinition;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
-using UnityEngine.Profiling;
 
 namespace TemplatePluginName
 {
@@ -20,7 +19,7 @@ namespace TemplatePluginName
     [BepInDependency("imabatby.lethallevelloader", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
-        const string PLUGIN_GUID = "dopadream.lethalcompany.atlas", PLUGIN_NAME = "Atlas", PLUGIN_VERSION = "1.0.5";
+        const string PLUGIN_GUID = "dopadream.lethalcompany.atlas", PLUGIN_NAME = "Atlas", PLUGIN_VERSION = "1.0.6";
         internal static new ManualLogSource Logger;
         internal static VolumeProfile canyonProfile, valleyProfile, tundraProfile, amethystProfile, companyProfile;
         internal static AssetBundle hdriSkies;
@@ -211,15 +210,15 @@ namespace TemplatePluginName
                         case ("CanyonContentTag"):
                             if (ModConfig.configCanyonSky?.Value == true)
                                 ChangeProfileIfAvailable("Canyon", volume);
-                            return;
+                            break;
                         case ("ValleyContentTag"):
                             if (ModConfig.configValleySky?.Value == true)
                                 ChangeProfileIfAvailable("Valley", volume);
-                            return;
+                            break;
                         case ("TundraContentTag"):
                             if (ModConfig.configTundraSky?.Value == true)
                                 ChangeProfileIfAvailable("Tundra", volume);
-                            return;
+                            break;
                     }
 
                     // -- embrion mapping --
