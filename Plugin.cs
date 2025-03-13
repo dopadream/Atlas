@@ -7,19 +7,19 @@ using LethalLevelLoader;
 using System.Linq;
 using System.IO;
 using System.Reflection;
-using Atlas;
 using System;
 using UnityEngine.Rendering.HighDefinition;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 
-namespace TemplatePluginName
+namespace Atlas
 {
     [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
     [BepInDependency("imabatby.lethallevelloader", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(LOBBY_COMPATIBILITY, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
-        const string PLUGIN_GUID = "dopadream.lethalcompany.atlas", PLUGIN_NAME = "Atlas", PLUGIN_VERSION = "1.0.6";
+        internal const string PLUGIN_GUID = "dopadream.lethalcompany.atlas", PLUGIN_NAME = "Atlas", PLUGIN_VERSION = "1.0.7", LOBBY_COMPATIBILITY = "BMX.LobbyCompatibility";
         internal static new ManualLogSource Logger;
         internal static VolumeProfile canyonProfile, valleyProfile, tundraProfile, amethystProfile, companyProfile;
         internal static AssetBundle hdriSkies;
@@ -27,6 +27,13 @@ namespace TemplatePluginName
         void Awake()
         {
             Logger = base.Logger;
+
+            if (Chainloader.PluginInfos.ContainsKey(LOBBY_COMPATIBILITY))
+            {
+                Plugin.Logger.LogInfo("CROSS-COMPATIBILITY - Lobby Compatibility detected");
+                LobbyCompatibility.Init();
+            }
+
             ModConfig.Init(Config);
             new Harmony(PLUGIN_GUID).PatchAll();
 

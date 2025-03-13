@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Atlas</AssemblyName>
     <Description>Adds unique HDRI skyboxes/volumes to Lethal Company</Description>
-    <Version>1.0.6</Version>
+    <Version>1.0.7</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -53,5 +53,8 @@
     <Reference Include="LethalLevelLoader">
       <HintPath>C:\Users\Stephanie\AppData\Roaming\com.kesomannen.gale\lethal-company\profiles\moon test\BepInEx\plugins\IAmBatby-LethalLevelLoader\LethalLevelLoader.dll</HintPath>
     </Reference>  
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="TeamBMX.LobbyCompatibility" Version="1.*" PrivateAssets="all" />
   </ItemGroup>
 </Project>
